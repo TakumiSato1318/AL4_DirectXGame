@@ -402,12 +402,12 @@ void Object3d::CreateModel()
 	//ファイルストリーム
 	std::ifstream file;
 	//.objファイルを開く
-	file.open("Resources/triangle.obj");
+	file.open("Resources/triangle_tex.obj");
 	//
 	if (file.fail()) {
 		assert(0);
 	}
-	vector<XMFLOAT3>position;
+	vector<XMFLOAT3>positions;
 	vector<XMFLOAT3>normals;
 	vector<XMFLOAT2>texcoords;
 	//1行ずつ読み込む
@@ -429,11 +429,32 @@ void Object3d::CreateModel()
 			line_stream >> postion.y;
 			line_stream >> postion.z;
 			//
-			position.emplace_back(postion);
-			//
-			VertexPosNormalUv vertex{};
+			positions.emplace_back(postion);
+			//頂点データに追加
+			/*VertexPosNormalUv vertex{};
 			vertex.pos = postion;
-			vertices.emplace_back(vertex);
+			vertices.emplace_back(vertex);*/
+		}
+		//先頭文字がvtならテクスチャ
+		if (key == "vt") {
+			//
+			XMFLOAT2 texcord{};
+			line_stream >> texcord.x;
+			line_stream >> texcord.y;
+			//
+			texcord.y = 1.0f - texcord.y;
+			//
+			texcoords.emplace_back(texcord);
+		}
+		//先頭文字がvnなら法線ベクトル
+		if (key == "vn") {
+			//
+			XMFLOAT3 normal{};
+			line_stream >> normal.x;
+			line_stream >> normal.y;
+			line_stream >> normal.z;
+			//
+			normals.emplace_back(normal);
 		}
 		//
 		if (key == "f") {
@@ -441,13 +462,24 @@ void Object3d::CreateModel()
 			while (getline(line_stream, index_string, ' ')) {
 				//
 				std::istringstream index_stream(index_string);
-				unsigned short indexPosition;
+				unsigned short indexPosition,indexNormal,indexTexCoord;
 				index_stream >> indexPosition;
-				//
-				indices.emplace_back(indexPosition - 1);
+				index_stream.seekg(1, ios_base::cur);//スラッシュを飛ばす
+				index_stream >> indexTexCoord;
+				index_stream.seekg(1, ios_base::cur);//スラッシュを飛ばす
+				index_stream >> indexNormal;
+				//頂点データの追加
+				VertexPosNormalUv vertex{};
+				vertex.pos = positions[indexPosition - 1];
+				vertex.normal = normals[indexNormal - 1];
+				vertex.uv = texcoords[indexTexCoord];
+				vertices.emplace_back(vertex);
+				//インデックスデータの追加
+				indices.emplace_back((unsigned short)indices.size());
+				//indices.emplace_back(indexPosition - 1);
 			}
 		}
-
+		
 	}
 
 	
